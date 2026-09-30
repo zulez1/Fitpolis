@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Туман над Долиной</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root { --u: 4px; --bg: #0d0b14; --ink: #fff1e8; --panel: #1d1a3a; --edge: #fee761; --dim: #8b9bb4; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #wrap { position: relative; box-shadow: 0 0 0 calc(var(--u) * 1.5) #262b44, 0 0 40px rgba(0,0,0,.6); }
+  #game { display: block; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
+
+  #dlg {
+    position: absolute; left: calc(var(--u) * 3); right: calc(var(--u) * 3); bottom: calc(var(--u) * 3);
+    background: var(--panel); border: calc(var(--u) * 1) solid var(--ink);
+    outline: calc(var(--u) * .75) solid #181425;
+    padding: calc(var(--u) * 3.5) calc(var(--u) * 3.5) calc(var(--u) * 4);
+    font-size: calc(var(--u) * 4.6); line-height: 1.55; min-height: calc(var(--u) * 34);
+  }
+  #dname { color: var(--edge); margin-bottom: calc(var(--u) * 1.5); }
+  #dname:empty { display: none; }
+  #dchoices div { margin-top: calc(var(--u) * 1.5); color: var(--dim); }
+  #dchoices div.sel { color: var(--ink); }
+  #dmore { position: absolute; right: calc(var(--u) * 3); bottom: calc(var(--u) * 1.5); color: var(--edge); animation: bob .6s steps(2) infinite; }
+  @keyframes bob { 50% { transform: translateY(calc(var(--u) * 1)); } }
+
+  #area {
+    position: absolute; left: calc(var(--u) * 3); top: calc(var(--u) * 3);
+    background: rgba(24,20,37,.85); padding: calc(var(--u) * 2) calc(var(--u) * 3);
+    font-size: calc(var(--u) * 3.6); border-left: calc(var(--u) * 1) solid var(--edge);
+    transition: opacity .5s; opacity: 0; pointer-events: none;
+  }
+  #area.show { opacity: 1; }
+
+  .screen {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: calc(var(--u) * 6); background: rgba(13,11,20,.88);
+  }
+  .screen h1 { font-size: calc(var(--u) * 7); line-height: 1.4; color: var(--edge); text-shadow: calc(var(--u) * .75) calc(var(--u) * .75) 0 #a22633; }
+  .screen h2 { font-size: calc(var(--u) * 4); color: var(--dim); margin: calc(var(--u) * 3) 0 calc(var(--u) * 6); font-weight: normal; }
+  .screen p { font-size: calc(var(--u) * 3.6); line-height: 1.7; margin-bottom: calc(var(--u) * 3); }
+  .screen .blink { animation: blink 1s steps(2) infinite; color: var(--ink); }
+  .screen .small { font-size: calc(var(--u) * 3); color: var(--dim); }
+  @keyframes blink { 50% { opacity: 0; } }
+  #end { justify-content: flex-start; overflow-y: auto; background: rgba(13,11,20,.93); }
+  #end h1 { margin-top: calc(var(--u) * 4); }
+  button.pix {
+    font-family: inherit; font-size: calc(var(--u) * 4); color: #181425; background: var(--edge);
+    border: none; padding: calc(var(--u) * 3) calc(var(--u) * 5); margin-top: calc(var(--u) * 3); cursor: pointer;
+    box-shadow: calc(var(--u) * 1) calc(var(--u) * 1) 0 #a22633;
+  }
+  .hidden { display: none !important; }
+
+  #hud {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-top: 14px; font-size: 10px; line-height: 1.6;
+  }
+  #inv { display: flex; gap: 6px; }
+  #inv canvas { width: 32px; height: 32px; image-rendering: pixelated; background: #1d1a3a; border: 2px solid #3a4466; }
+  #goal { color: var(--edge); max-width: 60vw; }
+  #goal span { color: var(--dim); display: block; }
+
+  #pad { display: none; margin-top: 14px; width: 100%; max-width: 420px; padding: 0 16px; justify-content: space-between; align-items: center; }
+  body.touch #pad { display: flex; }
+  #dpad { display: grid; grid-template-columns: repeat(3, 54px); grid-template-rows: repeat(3, 54px); }
+  #dpad button, #abtn {
+    font-family: inherit; color: var(--ink); background: #262b44; border: 3px solid #3a4466; font-size: 16px; touch-action: none;
+  }
+  #dpad button:active, #abtn:active, #dpad button.on { background: #3a4466; }
+  #abtn { width: 78px; height: 78px; border-radius: 50%; background: #a22633; border-color: #e43b44; font-size: 22px; }
+  #hint { font-size: 8px; color: var(--dim); margin-top: 10px; text-align: center; }
+  body.touch #hint { display: none; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="160" height="144"></canvas>
+  <div id="area"></div>
+  <div id="dlg" class="hidden"><div id="dname"></div><div id="dtext"></div><div id="dchoices"></div><div id="dmore">▼</div></div>
+  <div id="title" class="screen">
+    <h1>ТУМАН<br>НАД ДОЛИНОЙ</h1>
+    <h2>маленькая ретро-бродилка</h2>
+    <p class="blink">Нажми A / Пробел</p>
+    <p class="small">Стрелки или WASD — ходить<br>Пробел / Enter / Z — говорить<br>M — звук вкл/выкл</p>
+  </div>
+  <div id="end" class="screen hidden">
+    <h1>КОНЕЦ</h1>
+    <h2 id="endName"></h2>
+    <p id="endText"></p>
+    <p id="endExtra" class="small"></p>
+    <p id="endStats" class="small"></p>
+    <button class="pix" onclick="location.reload()">Играть снова</button>
+  </div>
+</div>
+<div id="hud">
+  <div id="inv"></div>
+  <div id="goal"></div>
+</div>
+<div id="pad">
+  <div id="dpad">
+    <span></span><button data-d="up">▲</button><span></span>
+    <button data-d="left">◀</button><span></span><button data-d="right">▶</button>
+    <span></span><button data-d="down">▼</button><span></span>
+  </div>
+  <button id="abtn">A</button>
+</div>
+<div id="hint">Стрелки/WASD — ходить · Пробел — действие · M — звук</div>
+
+<script>
+'use strict';
+const W = 160, H = 144, TS = 16, COLS = 10, ROWS = 9;
+const cv = document.getElementById('game'), ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const $ = id => document.getElementById(id);
+
+// ---------------------------------------------------------------- карта мира
+// Экраны 10x9 тайлов. Проходы между экранами: по горизонтали — ряд 4, по вертикали — колонки 4–5.
+//  .  трава   ,  цветы    p  тропинка  s  песок   ~  вода    b  мостки
+//  T  дерево  B  куст     #  скала     H  стена   W  окно    D  дверь дома   R  крыша
+//  F  забор   w  колодец  S  табличка  c  пол пещеры  C  стена пещеры
+//  L  башня маяка  l  фонарь маяка  d  дверь маяка  k  пол  X  стена  Q  лампа  e  выход
+const MAPS = {
+  '1,0': { name: 'Глухой лес', out: true, rows: [
+    'TTTTTTTTTT',
+    'TT,..T..TT',
+    'T...B...,T',
+    'T.T....T.T',
+    'T...,..B.T',
+    'TT..T....T',
+    'T.,....,TT',
+    'TTT.....TT',
+    'TTTT..TTTT'] },
+  '0,1': { name: 'Пещера Эха', dark: true, rows: [
+    'CCCCCCCCCC',
+    'CcccCccccC',
+    'CcCcCcCCcC',
+    'CcCcccCccC',
+    'CcCCCCCcCC',
+    'CcccccccCC',
+    'CCCCccCccC',
+    'CccccccCcC',
+    'CCCCccCCCC'] },
+  '1,1': { name: 'Опушка', out: true, rows: [
+    'TTTT..TTTT',
+    'TTT..BTTTT',
+    'TT.....T.T',
+    'T..,B....T',
+    'T.....,...',
+    'TT.B...T.T',
+    'T..,..B..T',
+    'TTT....TTT',
+    'TTTT..TTTT'] },
+  '2,1': { name: 'Цветочный луг', out: true, rows: [
+    'TTTTTTTTTT',
+    'T,.,..,.,T',
+    'T..,,..,.T',
+    'T.,...,..T',
+    '..,..,..,T',
+    'T.,.,...,T',
+    'T..,..,..T',
+    'TB..,..B.T',
+    'TTTT..TTTT'] },
+  '3,1': { name: 'Маяк', out: true, rows: [
+    '~~~~~~~~~~',
+    '~~#.ll.#~~',
+    '~#..LL..#~',
+    '~#.,LL..#~',
+    '~#..LL.S#~',
+    '~#..dL..#~',
+    '~#s.ss.s#~',
+    '~~#sss.##~',
+    '~~##ss##~~'] },
+  '0,2': { name: 'Скалы', out: true, rows: [
+    '####cc####',
+    '###.cc.###',
+    '#T..pp..T#',
+    '#...p.S..#',
+    '#..,pppppp',
+    '#.B.....,#',
+    '#..,..T..#',
+    '#T..,....#',
+    '##########'] },
+  '1,2': { name: 'Дом Агаты и Мирона', out: true, rows: [
+    'TTTT.pTTTT',
+    'TRRR.p.,.T',
+    'THDW.p...T',
+    'T.p..p.B.T',
+    'pppppppppp',
+    'T.,......T',
+    'T...FFF,.T',
+    'T..,.....T',
+    'TTTTTTTTTT'] },
+  '2,2': { name: 'Площадь', out: true, rows: [
+    'TTTT..TTTT',
+    'T.RRR..,.T',
+    'T.HWH..S.T',
+    'T...pp...T',
+    'pppppppppp',
+    'T..pwp...T',
+    'T..ppp.,.T',
+    'T.,....F.T',
+    'TTTTTTTTTT'] },
+  '3,2': { name: 'Берег', out: true, rows: [
+    '####ss####',
+    '#.,.ss..~~',
+    '#...ss.s~~',
+    '#..sssss~~',
+    'pppsssbbb~',
+    '#.sssss~~~',
+    '#ssss~~~~~',
+    '#sss~~~~~~',
+    '##~~~~~~~~'] },
+  'IN': { name: 'Внутри маяка', rows: [
+    'XXXXXXXXXX',
+    'XkkkkkkkkX',
+    'XkkkQQkkkX',
+    'XkkkkkkkkX',
+    'XkkkkkkkkX',
+    'XkkkkkkkkX',
+    'XkkkkkkkkX',
+    'XkkkkkkkkX',
+    'XXXXeXXXXX'] },
+}; // END MAPS
+const SOLID = new Set('TB#~HRDWFwSCLldXQ'.split(''));
+
+// ---------------------------------------------------------------- состояние
+const S = {
+  inv: {}, metGrandma: false, foxGone: false, metGrandpa: false, hatGiven: false,
+  gotCrystal: false, doorOpen: false, caveSeen: false, catPets: 0, kidTalks: 0,
+  lit: false, ending: null, start: 0,
+};
+let state = 'title';           // title | play | end
+let cur = '1,2';
+const pl = { tx: 2, ty: 3, dir: 'right', moving: false, prog: 0, dx: 0, dy: 0, steps: 0 };
+let dlg = null, trans = null, finale = null, waitRelease = false, t = 0;
+const held = [];
+const parts = [];
+
+const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+const OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
+
+// ---------------------------------------------------------------- звук
+let ac = null, muted = false;
+function initAudio() {
+  if (ac) return;
+  try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; }
+}
+function tone(f, d = .08, type = 'square', v = .04, slide = 0, delay = 0) {
+  if (!ac || muted) return;
+  const t0 = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  if (slide) o.frequency.linearRampToValueAtTime(Math.max(20, f + slide), t0 + d);
+  g.gain.setValueAtTime(v, t0); g.gain.exponentialRampToValueAtTime(.0001, t0 + d);
+  o.connect(g).connect(ac.destination); o.start(t0); o.stop(t0 + d + .02);
+}
+const sfx = {
+  blip: () => tone(520 + Math.random() * 120, .03, 'square', .015),
+  pick: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .12, 'square', .035, 0, i * .07)),
+  door: () => { tone(140, .18, 'sawtooth', .04, -60); tone(90, .2, 'square', .03, 0, .15); },
+  bump: () => tone(80, .06, 'square', .03),
+  sel: () => tone(880, .04, 'square', .02),
+  step: () => tone(200 + Math.random() * 40, .02, 'triangle', .02),
+  warp: () => tone(300, .15, 'triangle', .03, 300),
+  finale: () => [392, 523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, .3, 'triangle', .05, 0, i * .18)),
+  meow: () => { tone(700, .15, 'triangle', .04, 300); tone(1000, .2, 'triangle', .03, -400, .15); },
+};
+
+// ---------------------------------------------------------------- утилиты
+function hsh(x, y, k) {
+  let n = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(k, 1442695041)) | 0;
+  n = Math.imul(n ^ (n >>> 13), 1274126177); n ^= n >>> 16;
+  return (n >>> 0) / 4294967296;
+}
+// hudCtx позволяет рисовать те же иконки в инвентаре под экраном
+let hudCtx = null;
+function R(x, y, w, h, c) { const c2 = hudCtx || ctx; c2.fillStyle = c; c2.fillRect(x, y, w, h); }
+function tileAt(x, y, key = cur) {
+  const m = MAPS[key]; if (!m || y < 0 || y >= ROWS || x < 0 || x >= COLS) return '#';
+  return m.rows[y][x];
+}
+function ents(key = cur) { return (ENTS[key] || []).filter(e => !(e.hidden && e.hidden())); }
+function entAt(x, y) { return ents().find(e => e.x === x && e.y === y); }
+function blocked(x, y) {
+  if (SOLID.has(tileAt(x, y))) return true;
+  const e = entAt(x, y); return !!(e && !e.item);
+}
+
+// ---------------------------------------------------------------- тайлы
+const C = {
+  g1: '#3e8948', g2: '#63c74d', g0: '#265c42', dirt: '#e4a672', dirt2: '#b86f50', wood: '#733e39', wood0: '#3e2731',
+  sand: '#ead4aa', sand2: '#e4a672', w1: '#0099db', w2: '#2ce8f5', w0: '#124e89', r1: '#8b9bb4', r2: '#5a6988', r3: '#3a4466',
+  red: '#e43b44', red0: '#a22633', yel: '#fee761', org: '#feae34', white: '#ffffff', dark: '#181425', night: '#262b44',
+  pink: '#f6757a', purp: '#b55088', purp0: '#68386c', grey: '#c0cbdc',
+};
+function grass(x, y, gx, gy) {
+  R(x, y, 16, 16, C.g1);
+  for (let i = 0; i < 4; i++) {
+    const px = Math.floor(hsh(gx, gy, i) * 14) + 1, py = Math.floor(hsh(gx, gy, i + 9) * 13) + 1;
+    R(x + px, y + py, 1, 2, C.g2); R(x + px + 1, y + py + 1, 1, 1, C.g2);
+  }
+}
+function band(gy) { return gy % 2 ? C.red : C.white; }
+function drawTile(ch, x, y, gx, gy) {
+  switch (ch) {
+    case '.': grass(x, y, gx, gy); break;
+    case ',': {
+      grass(x, y, gx, gy);
+      const cols = [C.white, C.pink, C.red, C.yel];
+      for (let i = 0; i < 2; i++) {
+        const fx = x + 2 + Math.floor(hsh(gx, gy, 20 + i) * 10), fy = y + 2 + Math.floor(hsh(gx, gy, 30 + i) * 10);
+        const c = cols[Math.floor(hsh(gx, gy, 40 + i) * 4)];
+        R(fx + 1, fy, 1, 1, c); R(fx, fy + 1, 3, 1, c); R(fx + 1, fy + 2, 1, 1, c); R(fx + 1, fy + 1, 1, 1, C.org);
+      }
+      break;
+    }
+    case 'p':
+      R(x, y, 16, 16, C.dirt);
+      for (let i = 0; i < 3; i++) R(x + Math.floor(hsh(gx, gy, i) * 14) + 1, y + Math.floor(hsh(gx, gy, i + 5) * 14) + 1, 2, 1, C.dirt2);
+      break;
+    case 's':
+      R(x, y, 16, 16, C.sand);
+      for (let i = 0; i < 4; i++) R(x + Math.floor(hsh(gx, gy, i) * 15), y + Math.floor(hsh(gx, gy, i + 5) * 15), 1, 1, C.sand2);
+      break;
+    case '~': {
+      R(x, y, 16, 16, C.w1);
+      for (let i = 0; i < 3; i++) {
+        const wx = (i * 6 + gx * 5 + gy * 3 + Math.floor(t / 14)) % 16;
+        R(x + wx, y + 3 + i * 5, Math.min(4, 16 - wx), 1, C.w2);
+      }
+      break;
+    }
+    case 'b':
+      R(x, y, 16, 16, C.w1);
+      R(x, y + 2, 16, 12, C.dirt2);
+      for (let i = 0; i < 4; i++) R(x + i * 4, y + 2, 1, 12, C.wood);
+      R(x, y + 13, 16, 1, C.wood);
+      break;
+    case 'T':
+      grass(x, y, gx, gy);
+      R(x + 3, y + 14, 10, 2, 'rgba(0,0,0,.25)');
+      R(x + 6, y + 10, 4, 5, C.wood);
+      R(x + 2, y + 1, 12, 10, C.g0); R(x + 1, y + 3, 14, 6, C.g0); R(x + 4, y, 8, 1, C.g0);
+      R(x + 4, y + 2, 5, 3, C.g1); R(x + 3, y + 4, 2, 2, C.g1); R(x + 10, y + 6, 2, 2, C.g1);
+      break;
+    case 'B':
+      grass(x, y, gx, gy);
+      R(x + 2, y + 13, 12, 2, 'rgba(0,0,0,.25)');
+      R(x + 2, y + 5, 12, 9, C.g0); R(x + 1, y + 7, 14, 5, C.g0);
+      R(x + 4, y + 6, 4, 2, C.g1); R(x + 5, y + 10, 1, 1, C.red); R(x + 10, y + 8, 1, 1, C.red);
+      break;
+    case '#':
+      R(x, y, 16, 16, C.r3);
+      R(x + 1, y + 1, 8, 7, C.r1); R(x + 10, y + 1, 5, 7, C.r2);
+      R(x + 1, y + 9, 5, 6, C.r2); R(x + 7, y + 9, 8, 6, C.r1);
+      R(x + 2, y + 2, 3, 1, C.grey); R(x + 8, y + 10, 3, 1, C.grey);
+      break;
+    case 'H':
+      R(x, y, 16, 16, C.dirt);
+      for (let i = 0; i < 4; i++) R(x, y + i * 4 + 3, 16, 1, C.dirt2);
+      R(x, y + 15, 16, 1, C.wood);
+      break;
+    case 'W':
+      drawTile('H', x, y, gx, gy);
+      R(x + 3, y + 3, 10, 9, C.wood);
+      R(x + 4, y + 4, 8, 7, (t >> 5) % 7 ? C.org : C.yel);
+      R(x + 7, y + 4, 2, 7, C.wood); R(x + 4, y + 7, 8, 1, C.wood);
+      break;
+    case 'D':
+      drawTile('H', x, y, gx, gy);
+      R(x + 3, y + 2, 10, 14, C.wood); R(x + 4, y + 3, 8, 13, C.dirt2);
+      R(x + 4, y + 8, 8, 1, C.wood); R(x + 10, y + 9, 1, 2, C.yel);
+      break;
+    case 'R':
+      R(x, y, 16, 16, C.red0);
+      for (let j = 0; j < 4; j++) {
+        R(x, y + j * 4, 16, 1, C.red);
+        for (let i = 0; i < 3; i++) R(x + ((i * 6 + j * 3) % 16), y + j * 4 + 1, 1, 3, '#8a1f2c');
+      }
+      R(x, y + 14, 16, 2, C.wood);
+      break;
+    case 'F':
+      grass(x, y, gx, gy);
+      R(x + 1, y + 4, 3, 11, C.dirt2); R(x + 12, y + 4, 3, 11, C.dirt2);
+      R(x, y + 6, 16, 2, C.dirt); R(x, y + 11, 16, 2, C.dirt);
+      R(x + 1, y + 4, 3, 1, C.dirt); R(x + 12, y + 4, 3, 1, C.dirt);
+      break;
+    case 'w':
+      R(x, y, 16, 16, C.dirt);
+      R(x + 1, y + 13, 14, 2, 'rgba(0,0,0,.2)');
+      R(x + 2, y + 4, 12, 10, C.r1); R(x + 2, y + 4, 12, 2, C.grey);
+      R(x + 4, y + 6, 8, 5, C.dark); R(x + 5, y + 8, 3, 1, C.w0);
+      R(x + 2, y + 1, 1, 4, C.wood); R(x + 13, y + 1, 1, 4, C.wood); R(x + 1, y, 14, 2, C.red0);
+      break;
+    case 'S':
+      (tileAt(gx - 1, gy) === 's' ? drawTile('s', x, y, gx, gy) : grass(x, y, gx, gy));
+      R(x + 7, y + 9, 2, 6, C.wood);
+      R(x + 2, y + 3, 12, 7, C.wood); R(x + 3, y + 4, 10, 5, C.dirt);
+      R(x + 4, y + 5, 7, 1, C.wood); R(x + 4, y + 7, 5, 1, C.wood);
+      break;
+    case 'c':
+      R(x, y, 16, 16, C.night);
+      for (let i = 0; i < 3; i++) R(x + Math.floor(hsh(gx, gy, i) * 15), y + Math.floor(hsh(gx, gy, i + 5) * 15), 2, 1, C.r3);
+      break;
+    case 'C':
+      R(x, y, 16, 16, C.dark);
+      R(x + 1, y + 1, 7, 6, C.r3); R(x + 9, y + 3, 6, 5, '#2b2f4a'); R(x + 3, y + 9, 9, 6, '#2b2f4a');
+      if (hsh(gx, gy, 3) < .3) { R(x + 11, y + 10, 2, 3, C.purp); R(x + 12, y + 9, 1, 1, C.pink); }
+      break;
+    case 'L':
+      R(x, y, 16, 16, band(gy));
+      if (tileAt(gx + 1, gy) !== 'L' && tileAt(gx + 1, gy) !== 'd') R(x + 11, y, 5, 16, 'rgba(0,0,0,.18)');
+      else R(x, y, 2, 16, 'rgba(255,255,255,.25)');
+      break;
+    case 'l':
+      R(x, y, 16, 16, C.night);
+      R(x, y, 16, 3, C.red0);
+      R(x + 1, y + 4, 14, 11, S.lit ? C.yel : C.r3);
+      if (S.lit) R(x + 3, y + 6, 4, 6, C.white);
+      R(x + (gx % 2 ? 0 : 15), y + 3, 1, 13, C.dark);
+      break;
+    case 'd':
+      R(x, y, 16, 16, band(gy));
+      R(x + 3, y + 3, 10, 13, C.wood); R(x + 4, y + 4, 8, 12, C.wood0);
+      R(x + 9, y + 9, 2, 2, S.doorOpen ? C.yel : C.org);
+      break;
+    case 'k':
+      R(x, y, 16, 16, C.dirt2);
+      for (let i = 0; i < 4; i++) {
+        R(x, y + i * 4 + 3, 16, 1, C.wood);
+        R(x + ((i * 7 + gx * 3) % 16), y + i * 4, 1, 3, C.wood);
+      }
+      break;
+    case 'Q': drawTile('k', x, y, gx, gy); break;
+    case 'X':
+      R(x, y, 16, 16, C.wood0);
+      for (let j = 0; j < 4; j++) for (let i = 0; i < 2; i++) R(x + i * 8 + (j % 2) * 4, y + j * 4, 7, 3, C.wood);
+      break;
+    case 'e':
+      drawTile('k', x, y, gx, gy);
+      R(x + 2, y + 3, 12, 11, C.red0); R(x + 3, y + 4, 10, 9, C.red);
+      break;
+  }
+}
+function drawLamp(x, y) {
+  R(x + 3, y + 13, 26, 3, 'rgba(0,0,0,.3)');
+  R(x + 4, y + 10, 24, 5, C.wood);
+  R(x + 6, y + 1, 20, 10, C.org); R(x + 6, y + 1, 20, 1, C.yel);
+  R(x + 9, y + 3, 14, 6, S.lit ? C.yel : C.r2);
+  if (S.lit) R(x + 11, y + 4, 4, 3, C.white);
+  else { R(x + 12, y + 3, 1, 2, C.dark); R(x + 13, y + 5, 1, 2, C.dark); R(x + 14, y + 7, 2, 1, C.dark); }
+}
+
+// ---------------------------------------------------------------- спрайты
+const LOOK = {
+  player:  { skin: '#f2c49b', hair: C.wood, shirt: C.w1, pants: C.r3, cap: C.red, cap0: C.red0 },
+  grandma: { skin: '#f2c49b', hair: C.grey, dress: C.purp, apron: C.white, scarf: C.purp0 },
+  grandpa: { skin: '#f2c49b', hair: C.grey, beard: C.white, shirt: C.g1, pants: C.wood, cane: true },
+  fisher:  { skin: C.dirt, hair: C.wood0, beard: C.wood, shirt: C.w0, pants: C.night },
+  kid:     { skin: '#f2c49b', hair: C.org, shirt: C.red, pants: C.w0 },
+};
+function drawPerson(x, y0, o, dir, fr) {
+  const side = dir === 'left' || dir === 'right', flip = dir === 'left';
+  R(x + 3, y0 + 14, 10, 2, 'rgba(0,0,0,.28)');
+  const y = y0 - (fr ? 1 : 0);
+  const r = (px, py, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(flip ? x + 16 - px - w : x + px, y + py, w, h); };
+  const body = o.shirt || o.dress;
+  if (o.dress) {
+    r(4, 9, 8, 5, o.dress); r(5, 14, 2, 1, C.wood0); r(9, 14, 2, 1, C.wood0);
+    if (o.apron && dir !== 'up' && !side) r(6, 10, 4, 4, o.apron);
+  } else {
+    r(5, 12, 2, fr === 1 ? 2 : 3, o.pants); r(9, 12, 2, fr === 2 ? 2 : 3, o.pants);
+    r(5, fr === 1 ? 13 : 14, 2, 1, C.wood0); r(9, fr === 2 ? 13 : 14, 2, 1, C.wood0);
+  }
+  r(4, 8, 8, 4, body);
+  if (side) { r(7, 9, 2, 2, body); r(7, 11, 2, 1, o.skin); }
+  else { r(3, 8, 1, 3, body); r(12, 8, 1, 3, body); r(3, 11, 1, 1, o.skin); r(12, 11, 1, 1, o.skin); }
+  r(4, 2, 8, 6, o.skin); r(5, 1, 6, 1, o.skin);
+  if (dir === 'up') { r(4, 1, 8, 6, o.hair); r(5, 0, 6, 1, o.hair); r(3, 2, 1, 4, o.hair); r(12, 2, 1, 4, o.hair); }
+  else if (side) { r(5, 0, 6, 1, o.hair); r(4, 1, 7, 2, o.hair); r(3, 2, 3, 5, o.hair); }
+  else { r(5, 0, 6, 1, o.hair); r(4, 1, 8, 2, o.hair); r(3, 2, 1, 4, o.hair); r(12, 2, 1, 4, o.hair); }
+  if (dir === 'down') { r(6, 4, 1, 2, C.dark); r(9, 4, 1, 2, C.dark); r(5, 6, 1, 1, C.pink); r(10, 6, 1, 1, C.pink); }
+  else if (side) { r(10, 4, 1, 2, C.dark); r(11, 6, 1, 1, C.pink); }
+  if (o.beard && dir !== 'up') {
+    if (side) r(8, 6, 4, 3, o.beard); else { r(5, 6, 6, 3, o.beard); r(4, 5, 1, 2, o.beard); r(11, 5, 1, 2, o.beard); }
+  }
+  if (o.scarf) {
+    if (side) { r(3, 0, 9, 3, o.scarf); r(3, 3, 2, 4, o.scarf); }
+    else { r(3, 0, 10, 3, o.scarf); r(3, 3, 1, 4, o.scarf); r(12, 3, 1, 4, o.scarf); }
+  }
+  if (o.cap) {
+    if (dir === 'up') r(4, 0, 8, 3, o.cap);
+    else if (side) { r(4, 0, 7, 2, o.cap); r(9, 2, 5, 1, o.cap0); }
+    else { r(4, 0, 8, 2, o.cap); r(4, 2, 8, 1, o.cap0); }
+  }
+  if (o.fhat) { r(2, 1, 12, 1, C.dirt2); r(4, -2, 8, 3, C.org); r(4, 0, 8, 1, C.wood); }
+  if (o.cane) { r(13, 6, 1, 9, C.wood); r(12, 6, 2, 1, C.wood); }
+}
+function drawFox(x, y) {
+  R(x + 3, y + 14, 11, 2, 'rgba(0,0,0,.28)');
+  const wag = (t >> 4) % 2, O = '#f77622';
+  R(x + 10, y + 8 - wag, 5, 5, O); R(x + 13, y + 11 - wag, 2, 2, C.white);
+  R(x + 4, y + 8, 7, 6, O); R(x + 5, y + 10, 3, 4, C.white);
+  R(x + 3, y + 3, 8, 6, O); R(x + 3, y + 1, 2, 2, O); R(x + 9, y + 1, 2, 2, O);
+  R(x + 4, y + 2, 1, 1, C.dark); R(x + 9, y + 2, 1, 1, C.dark);
+  R(x + 4, y + 7, 6, 2, C.white); R(x + 6, y + 7, 2, 1, C.dark);
+  R(x + 4, y + 5, 1, 1, C.dark); R(x + 9, y + 5, 1, 1, C.dark);
+}
+function drawCat(x, y) {
+  R(x + 3, y + 14, 10, 2, 'rgba(0,0,0,.28)');
+  const G = '#8b9bb4', G0 = '#5a6988', wag = (t >> 5) % 2;
+  R(x + 12, y + 6 + wag, 1, 7, G0); R(x + 13, y + 5 + wag, 1, 2, G0);
+  R(x + 4, y + 9, 8, 5, G); R(x + 5, y + 10, 1, 4, G0); R(x + 8, y + 10, 1, 4, G0);
+  R(x + 3, y + 5, 6, 5, G); R(x + 3, y + 4, 1, 1, G); R(x + 8, y + 4, 1, 1, G);
+  const blink = (t % 180) < 8;
+  if (!blink) { R(x + 4, y + 7, 1, 1, C.yel); R(x + 7, y + 7, 1, 1, C.yel); }
+  R(x + 5, y + 8, 2, 1, C.pink);
+}
+function drawSpirit(x, y, a = .9) {
+  const f = Math.sin(t / 20) * 2;
+  ctx.globalAlpha = a;
+  R(x + 4, y + 14, 8, 2, 'rgba(0,0,0,.15)');
+  const yy = y + f - 2;
+  R(x + 4, yy + 1, 8, 1, C.grey); R(x + 3, yy + 2, 10, 10, C.grey); R(x + 2, yy + 4, 12, 6, C.grey);
+  R(x + 4, yy + 2, 3, 2, C.white);
+  const ph = (t >> 3) % 2;
+  for (let i = 0; i < 3; i++) R(x + 3 + i * 4 + ph, yy + 12, 2, 2, C.grey);
+  R(x + 5, yy + 5, 2, 3, C.night); R(x + 9, yy + 5, 2, 3, C.night);
+  R(x + 7, yy + 9, 2, 1, C.r2);
+  ctx.globalAlpha = 1;
+}
+function drawStone(x, y) {
+  R(x + 2, y + 13, 12, 2, 'rgba(0,0,0,.3)');
+  R(x + 3, y + 5, 10, 9, C.purp0); R(x + 2, y + 8, 12, 5, C.purp0); R(x + 4, y + 4, 8, 1, C.purp0);
+  const g = (t >> 4) % 3 === 0 ? C.pink : C.purp;
+  R(x + 7, y + 6, 2, 5, g); R(x + 6, y + 8, 4, 1, g);
+}
+function drawCloudBuddy(x, y) {
+  const f = Math.sin(t / 15) * 1.5;
+  R(x + 1, y + 3 + f, 8, 4, C.white); R(x + 2, y + 1 + f, 3, 2, C.white); R(x + 5, y + f, 3, 3, C.white);
+  R(x + 3, y + 4 + f, 1, 1, C.night); R(x + 6, y + 4 + f, 1, 1, C.night);
+}
+const ICON = {
+  pie(x, y) { R(x + 2, y + 8, 12, 5, '#d77643'); R(x + 3, y + 6, 10, 3, C.dirt); R(x + 5, y + 7, 2, 1, C.wood); R(x + 9, y + 7, 2, 1, C.wood); R(x + 2, y + 12, 12, 1, C.wood); },
+  lantern(x, y) {
+    R(x + 6, y + 1, 4, 1, C.r3); R(x + 5, y + 2, 1, 2, C.r3); R(x + 10, y + 2, 1, 2, C.r3);
+    R(x + 4, y + 4, 8, 2, C.r3); R(x + 5, y + 6, 6, 6, C.yel); R(x + 7, y + 8, 2, 3, C.org); R(x + 4, y + 12, 8, 2, C.r3);
+  },
+  hat(x, y) { R(x + 1, y + 9, 14, 3, C.dirt2); R(x + 4, y + 4, 8, 6, C.org); R(x + 4, y + 8, 8, 1, C.wood); R(x + 5, y + 5, 2, 1, C.yel); },
+  key(x, y) {
+    R(x + 2, y + 5, 5, 1, C.yel); R(x + 2, y + 9, 5, 1, C.yel); R(x + 2, y + 5, 1, 5, C.yel); R(x + 6, y + 5, 1, 5, C.yel);
+    R(x + 7, y + 7, 7, 2, C.yel); R(x + 11, y + 9, 1, 2, C.yel); R(x + 13, y + 9, 1, 3, C.yel); R(x + 3, y + 6, 1, 1, C.white);
+  },
+  crystal(x, y) {
+    const rows = [[7, 2], [6, 4], [5, 6], [4, 8], [4, 8], [5, 6], [6, 4], [7, 2]];
+    rows.forEach(([ox, w], i) => { R(x + ox, y + 3 + i * 1.25 | 0, w, 2, i < 4 ? C.w2 : C.w1); });
+    R(x + 6, y + 5, 1, 2, C.white);
+    if ((t >> 3) % 4 === 0) { R(x + 12, y + 2, 1, 3, C.white); R(x + 11, y + 3, 3, 1, C.white); }
+  },
+};
+function heart(x, y, c = C.pink) { R(x, y, 2, 1, c); R(x + 3, y, 2, 1, c); R(x, y + 1, 5, 1, c); R(x + 1, y + 2, 3, 1, c); R(x + 2, y + 3, 1, 1, c); }
+
+// ---------------------------------------------------------------- диалоги
+const N = { gm: 'Бабушка Агата', gp: 'Дедушка Мирон', fox: 'Лиса', fish: 'Рыбак Гриша', kid: 'Лёва', cat: 'Барсик', sp: 'Дух Тумана' };
+function say(lines, onEnd) {
+  dlg = { lines: lines.map(l => typeof l === 'string' ? { n: '', t: l } : l), i: 0, chars: 0, sel: 0, onEnd, last: -1 };
+  $('dlg').classList.remove('hidden');
+}
+function L(n, ...ts) { return ts.map(t => ({ n, t })); }
+function getItem(item, text, then) {
+  S.inv[item] = true; sfx.pick(); updateHUD();
+  burst(pl.tx * 16 + 8, pl.ty * 16 + 4, C.yel, 14);
+  say([text], then);
+}
+function advance() {
+  const ln = dlg.lines[dlg.i];
+  if (dlg.chars < ln.t.length) { dlg.chars = ln.t.length; return; }
+  if (ln.choice) {
+    const cb = ln.choice.cb, sel = dlg.sel; closeDlg(false); sfx.sel(); cb(sel); return;
+  }
+  dlg.i++; dlg.chars = 0; dlg.sel = 0;
+  if (dlg.i >= dlg.lines.length) closeDlg(true);
+}
+function closeDlg(runEnd) {
+  const d = dlg; dlg = null; waitRelease = true;
+  $('dlg').classList.add('hidden');
+  if (runEnd && d.onEnd) d.onEnd();
+}
+function renderDlg() {
+  if (!dlg) return;
+  const ln = dlg.lines[dlg.i], shown = Math.floor(dlg.chars), done = shown >= ln.t.length;
+  const key = dlg.i + ':' + shown + ':' + dlg.sel + ':' + done;
+  if (key === dlg.last) return; dlg.last = key;
+  $('dname').textContent = ln.n;
+  $('dtext').textContent = ln.t.slice(0, shown);
+  const ch = $('dchoices'); ch.innerHTML = '';
+  if (ln.choice && done) ln.choice.opts.forEach((o, i) => {
+    const d = document.createElement('div'); d.textContent = (i === dlg.sel ? '▶ ' : '  ') + o;
+    if (i === dlg.sel) d.className = 'sel'; ch.appendChild(d);
+  });
+  $('dmore').style.visibility = done && !ln.choice ? 'visible' : 'hidden';
+}
+
+// ---------------------------------------------------------------- сюжет
+function talkGrandma() {
+  if (S.lit) return say(L(N.gm, 'Свет вернулся! Ты у нас настоящее солнышко.'));
+  if (!S.metGrandma) {
+    S.metGrandma = true;
+    return say(L(N.gm,
+      'Солнышко, уже не спишь? Вот и славно.',
+      'Беда у нас. Маяк погас, а с моря ползёт туман — густой, как кисель.',
+      'Дедушка Мирон ещё вечером ушёл в лес, на север. Сказал — «за одной важной штукой». И не вернулся.',
+      'Найди его, прошу. Вот, возьми пирожок с капустой — в дороге пригодится.'),
+      () => getItem('pie', 'Получен ПИРОЖОК! Пахнет домом.'));
+  }
+  if (S.inv.crystal && S.inv.key) return say(L(N.gm, 'Кристалл и ключ? Ну ты даёшь! Беги к маяку — он к северу от берега.'));
+  if (S.metGrandpa) return say(L(N.gm, 'Дед нашёлся?! Ох, слава небесам... Помоги ему, солнышко. Без света туман не уйдёт.'));
+  return say(L(N.gm, 'Лес — на север от дома. Дед у нас упрямый, но без него маяк никто не починит.'));
+}
+function talkFox(e) {
+  if (!S.inv.pie) return say([...L(N.fox, 'Фыр!'), 'Рыжая лиса преградила тропинку. У неё громко урчит в животе.']);
+  say([...L(N.fox, 'Фыр-фыр!'),
+    { n: '', t: 'Рыжая лиса не пускает дальше и жадно принюхивается к твоей сумке. Угостить её пирожком?',
+      choice: { opts: ['Угостить', 'Не сейчас'], cb: i => {
+        if (i === 1) return say(['Лиса обиженно фыркает и не двигается с места.']);
+        delete S.inv.pie; updateHUD();
+        say([...L(N.fox, 'Ням!'), 'Лиса проглотила пирожок в два укуса, благодарно махнула хвостом и скрылась в кустах.', 'Путь на север свободен!'],
+          () => { S.foxGone = true; burst(e.x * 16 + 8, e.y * 16 + 8, C.dirt, 18); sfx.warp(); });
+      } } }]);
+}
+function talkGrandpa() {
+  if (S.lit) return say(L(N.gp, 'Я видел свет прямо отсюда! Молодец. Нога уже почти прошла — скоро приковыляю домой.'));
+  if (!S.metGrandpa) {
+    S.metGrandpa = true;
+    return say(L(N.gp,
+      'Ох! Вот уж не думал, что меня так скоро найдут!',
+      'Подвернул ногу, пока искал короткую тропу к Пещере Эха. Старый стал...',
+      'Слушай внимательно. Маяк погас, потому что его линза — Кристалл Света — треснула.',
+      'Новый кристалл растёт только в Пещере Эха. Это к западу от нашего дома, за скалами.',
+      'В пещере темно, как в сундуке. Держи мой фонарь.'),
+      () => getItem('lantern', 'Получен ФОНАРЬ! Огонёк внутри весело подмигивает.', () => say(L(N.gp,
+        'Ключ от маяка я отдал на хранение рыбаку Грише. Он на берегу, к востоку от площади.',
+        'И ещё... Говорят, в тумане кто-то живёт. Если встретишь — не бойся. Туман не злой. Он просто... туман.',
+        'А я тут посижу, нога отдохнёт. Ступай!'))));
+  }
+  return say(L(N.gp, 'Кристалл — в Пещере Эха, на западе. Ключ — у Гриши на берегу. А маяк — к северу от берега.'));
+}
+function talkFisher() {
+  if (S.lit) return say(L(N.fish, 'Свет! Теперь и корабли домой дорогу найдут. А я — рыбу!'));
+  if (S.hatGiven) return say(L(N.fish, 'Шляпа на месте — и клёв пошёл! Удачи у маяка.'));
+  if (S.inv.hat) {
+    return say(L(N.fish,
+      'Это же... МОЯ ШЛЯПА! Спасибо, выручил... выручила... эх, в тумане не разглядеть! Спасибо, в общем!',
+      'Держи-ка: ключ от маяка. Мирон просил отдать его тому, кто придёт с добрым сердцем.'),
+      () => { delete S.inv.hat; S.hatGiven = true; getItem('key', 'Получен КЛЮЧ ОТ МАЯКА! Тяжёлый и старинный.'); });
+  }
+  const lines = L(N.fish,
+    'Ну и погодка! Туман такой, что собственного поплавка не видно.',
+    'А тут ещё ветер налетел и сдул мою счастливую шляпу. Унёс куда-то на луг, к северу от площади.');
+  if (S.metGrandpa) lines.push(...L(N.fish, 'Ключ от маяка? Мирон оставлял, помню. Но без шляпы я сейчас ни о чём думать не могу!'));
+  say(lines);
+}
+function talkKid() {
+  if (S.lit) return say(L(N.kid, 'Туман ушёл! Можно снова пускать кораблики!'));
+  S.kidTalks++;
+  if (S.kidTalks % 2) return say(L(N.kid,
+    'Бабушка говорит, туман — живой. Будто в нём прячется Дух Тумана, и приходит он, только когда гаснет свет.',
+    'Интересно, ему не холодно там, одному?'));
+  return say(L(N.kid, 'Барсик опять спит у колодца. А я вот не боюсь тумана. Почти.'));
+}
+function talkCat(e) {
+  S.catPets++; sfx.meow();
+  for (let i = 0; i < 3; i++) parts.push({ x: e.x * 16 + 5 + i * 3, y: e.y * 16, vx: (Math.random() - .5) * .3, vy: -.4 - Math.random() * .3, life: 50 + i * 10, heart: true });
+  if (S.catPets === 1) return say([...L(N.cat, 'Мяу?'), 'Барсик подставляет спинку.']);
+  if (S.catPets === 2) return say(L(N.cat, 'Мррр...'));
+  return say([...L(N.cat, 'Мрррррр!'), 'Барсик громко мурлычет. Кажется, теперь вы лучшие друзья.']);
+}
+function talkStone() {
+  say(['Светящийся камень тихо гудит, и эхо шепчет:', '«...не бойся тумана... ему просто одиноко...»']);
+}
+function talkSpirit() {
+  if (S.lit) return;
+  if (!S.inv.crystal) return say(L(N.sp,
+    'Ещё один маленький человек... Пришёл зажигать свет?',
+    'Без кристалла у тебя ничего не выйдет. Можешь не стараться.'));
+  say([...L(N.sp,
+    'Значит, кристалл у тебя...',
+    'Я — Туман. Я прихожу, когда гаснет свет.',
+    'Все закрывают от меня ставни. Все ждут, когда я уйду.',
+    'Когда маяк горит, мне приходится уползать далеко в море. Там холодно... и совсем не с кем поговорить.',
+    'Ну что же. Вставляй свой кристалл.'),
+    { n: '', t: 'Что сказать Духу Тумана?', choice: { opts: ['Уходи в море!', 'Давай дружить!'], cb: i => {
+      if (i === 0) say([...L(N.sp, '...Как и все.'), 'Ты вставляешь Кристалл Света в лампу. Дух молча отворачивается к окну.'], () => startFinale('alone'));
+      else say([...L(N.sp, 'Дружить?.. Со мной?', 'Со мной ещё никто и никогда не хотел дружить...'),
+        'Ты вставляешь Кристалл Света в лампу. Туман тихонько садится тебе на плечо — лёгкий, как пёрышко.'], () => startFinale('friend'));
+    } } }]);
+}
+const SIGNS = {
+  '2,2': 'ПЛОЩАДЬ.  Север — Луг.  Восток — Берег.  Запад — Дом.',
+  '0,2': 'ПЕЩЕРА ЭХА. Без света не входить!',
+  '3,1': 'МАЯК ТИХОЙ БУХТЫ. Смотритель — дед Мирон.',
+};
+function tileTalk(ch) {
+  switch (ch) {
+    case 'S': return say([SIGNS[cur] || 'Табличка стёрлась от времени.']);
+    case 'w': return say(['Старый колодец. Если крикнуть в него, эхо отвечает: «...с-в-е-т...»']);
+    case 'D': return say(['Дверь нашего дома. Внутри тепло и пахнет пирогами. Но сейчас не до этого!']);
+    case 'W': return say(['В окне уютно горит свечка.']);
+    case 'd': return tryDoor();
+    case 'Q':
+      if (S.lit) return say(['Лампа сияет так, что больно смотреть.']);
+      if (S.inv.crystal) return talkSpirit();
+      return say(['Огромная лампа маяка. Её линза треснула и погасла.']);
+    case '~': return say(['Море неспокойно шепчет в тумане.']);
+  }
+}
+function tryDoor() {
+  if (!S.inv.key) { sfx.bump(); return say(['Дверь маяка заперта на большой старинный замок.']); }
+  const first = !S.doorOpen; S.doorOpen = true; sfx.door();
+  goTo('IN', 4, 7, 'up', first ? () => say(['Ключ со скрипом поворачивается. Внутри маяка кто-то есть...']) : null);
+}
+
+// ---------------------------------------------------------------- сущности
+const ENTS = {
+  '1,2': [{ x: 3, y: 3, look: 'grandma', dir: 'left', talk: talkGrandma }],
+  '1,1': [{ x: 4, y: 1, draw: drawFox, talk: talkFox, hidden: () => S.foxGone }],
+  '1,0': [{ x: 5, y: 2, look: 'grandpa', dir: 'down', talk: talkGrandpa }],
+  '2,1': [{ x: 7, y: 2, item: 'hat', hidden: () => S.inv.hat || S.hatGiven,
+            pick: () => getItem('hat', 'Найдена ШЛЯПА РЫБАКА! Слегка помятая, но всё ещё счастливая.') }],
+  '2,2': [{ x: 2, y: 6, draw: drawCat, talk: talkCat },
+          { x: 6, y: 6, look: 'kid', dir: 'down', talk: talkKid }],
+  '3,2': [{ x: 8, y: 4, look: 'fisher', dir: 'right', talk: talkFisher }],
+  '0,1': [{ x: 1, y: 1, item: 'crystal', light: 20, hidden: () => S.gotCrystal,
+            pick: () => { S.gotCrystal = true; getItem('crystal', 'Найден КРИСТАЛЛ СВЕТА! Он тёплый и тихонько звенит.'); } },
+          { x: 8, y: 1, draw: drawStone, light: 14, talk: talkStone }],
+  'IN': [{ x: 7, y: 3, draw: (x, y) => drawSpirit(x, y), talk: talkSpirit, hidden: () => S.lit }],
+};
+
+// ---------------------------------------------------------------- перемещение
+function goTo(key, x, y, dir, after) {
+  trans = { t: 0, dur: 18, cb: () => {
+    cur = key; pl.tx = x; pl.ty = y; pl.dir = dir; pl.moving = false; pl.prog = 0;
+    showArea(MAPS[key].name);
+    if (after) setTimeout(after, 150);
+  } };
+}
+function edgeExit(d) {
+  if (cur === 'IN') return;
+  const [cx, cy] = cur.split(',').map(Number), [dx, dy] = DIRS[d];
+  const key = (cx + dx) + ',' + (cy + dy);
+  if (!MAPS[key]) return sfx.bump();
+  if (MAPS[key].dark && !S.inv.lantern) { sfx.bump(); return say(['Из пещеры тянет холодом. Там кромешная тьма — без фонаря никак.']); }
+  let nx = pl.tx, ny = pl.ty;
+  if (d === 'left') nx = COLS - 1; if (d === 'right') nx = 0;
+  if (d === 'up') ny = ROWS - 1; if (d === 'down') ny = 0;
+  const firstCave = MAPS[key].dark && !S.caveSeen;
+  if (firstCave) S.caveSeen = true;
+  goTo(key, nx, ny, d, firstCave ? () => say(['Фонарь выхватывает из темноты мокрые камни. Где-то капает вода... кап... кап...']) : null);
+}
+function tryMove(d) {
+  pl.dir = d;
+  const [dx, dy] = DIRS[d], nx = pl.tx + dx, ny = pl.ty + dy;
+  if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return edgeExit(d);
+  if (blocked(nx, ny)) {
+    if (tileAt(nx, ny) === 'd') tryDoor();
+    return;
+  }
+  pl.moving = true; pl.prog = 0; pl.dx = dx; pl.dy = dy; pl.steps++;
+  if (pl.steps % 2) sfx.step();
+}
+function onArrive() {
+  const e = entAt(pl.tx, pl.ty);
+  if (e && e.item) { e.pick(); return; }
+  if (tileAt(pl.tx, pl.ty) === 'e') { sfx.door(); goTo('3,1', 4, 6, 'down'); }
+}
+function interact() {
+  const [dx, dy] = DIRS[pl.dir], fx = pl.tx + dx, fy = pl.ty + dy;
+  const e = entAt(fx, fy);
+  if (e && e.talk) { if (e.look) e.dir = OPP[pl.dir]; return e.talk(e); }
+  tileTalk(tileAt(fx, fy));
+}
+function startFinale(kind) {
+  S.ending = kind; S.lit = true; delete S.inv.crystal; updateHUD();
+  sfx.finale();
+  finale = { t: 0, kind };
+  goTo('3,1', 4, 6, 'up');
+}
+function showEnding() {
+  state = 'end';
+  const friend = S.ending === 'friend';
+  $('endName').textContent = friend ? 'Концовка: «Друг из тумана»' : 'Концовка: «Свет и тишина»';
+  $('endText').textContent = friend
+    ? 'Маяк вспыхнул, но туман не исчез — он превратился в маленькое пушистое облачко и остался жить в Тихой Долине. По утрам оно поливает бабушкины цветы, а по вечерам слушает дедушкины истории. Говорят, с тех пор роса в долине — самая сверкающая на всём побережье.'
+    : 'Луч маяка прорезал ночь, и туман с долгим вздохом растаял над морем. Дедушка вернулся домой, бабушка напекла пирогов, а корабли снова нашли дорогу в бухту. Только иногда, тихими вечерами, с моря доносится чей-то грустный шёпот...';
+  $('endExtra').textContent = S.catPets >= 3
+    ? (friend ? 'А Барсик теперь спит на облачке. Ну, почти.' : 'Барсик, кстати, всё видел и одобряет.')
+    : (friend ? '' : 'Может, стоит попробовать поговорить с Туманом иначе?');
+  const sec = Math.floor((Date.now() - S.start) / 1000);
+  $('endStats').textContent = 'Время: ' + Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + (S.catPets >= 3 ? '  ·  Друг Барсика ♥' : '');
+  $('end').classList.remove('hidden');
+}
+
+// ---------------------------------------------------------------- HUD
+const INV_ORDER = ['pie', 'lantern', 'hat', 'key', 'crystal'];
+const INV_NAMES = { pie: 'Пирожок', lantern: 'Фонарь', hat: 'Шляпа', key: 'Ключ', crystal: 'Кристалл' };
+const invCanvases = INV_ORDER.map(k => {
+  const c = document.createElement('canvas'); c.width = 16; c.height = 16; c.title = INV_NAMES[k];
+  $('inv').appendChild(c); return c;
+});
+function goalText() {
+  if (S.lit) return ['Маяк горит!', ''];
+  if (!S.metGrandma) return ['Поговори с бабушкой', ''];
+  if (!S.metGrandpa) return ['Найди дедушку', 'лес на севере'];
+  if (S.inv.crystal && S.inv.key) return ['Зажги маяк', 'к северу от берега'];
+  const need = [];
+  if (!S.inv.crystal) need.push('кристалл — пещера (запад)');
+  if (!S.inv.key) need.push(S.inv.hat ? 'отнеси шляпу рыбаку' : 'ключ — у рыбака (восток)');
+  return ['Добудь:', need.join(' · ')];
+}
+function updateHUD() {
+  invCanvases.forEach((c, i) => {
+    const k = INV_ORDER[i], cx = c.getContext('2d'); cx.clearRect(0, 0, 16, 16);
+    c.style.opacity = S.inv[k] ? 1 : .25;
+    if (S.inv[k]) { hudCtx = cx; ICON[k](0, 0); hudCtx = null; }
+  });
+  const [a, b] = goalText();
+  $('goal').innerHTML = '';
+  $('goal').append(a); if (b) { const s = document.createElement('span'); s.textContent = b; $('goal').append(s); }
+}
+
+let areaTimer = 0;
+function showArea(name) {
+  const a = $('area'); a.textContent = name; a.classList.add('show');
+  clearTimeout(areaTimer); areaTimer = setTimeout(() => a.classList.remove('show'), 1800);
+}
+
+// ---------------------------------------------------------------- частицы и туман
+function burst(x, y, c, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, s = .4 + Math.random() * 1.2;
+    parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - .5, life: 25 + Math.random() * 20, c });
+  }
+}
+const fog = Array.from({ length: 7 }, (_, i) => ({ x: Math.random() * 200 - 20, y: 10 + i * 20 + Math.random() * 10, r: 28 + Math.random() * 24, v: .08 + Math.random() * .15 }));
+const dk = document.createElement('canvas'); dk.width = W; dk.height = H;
+const dctx = dk.getContext('2d');
+
+// ---------------------------------------------------------------- цикл
+function update() {
+  t++;
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i]; p.x += p.vx; p.y += p.vy; if (!p.heart) p.vy += .03; if (--p.life <= 0) parts.splice(i, 1);
+  }
+  fog.forEach(f => { f.x += f.v; if (f.x - f.r > W) f.x = -f.r; });
+  if (state !== 'play') return;
+  if (dlg) {
+    const ln = dlg.lines[dlg.i];
+    if (dlg.chars < ln.t.length) { const before = Math.floor(dlg.chars); dlg.chars += .8; if (Math.floor(dlg.chars) !== before && before % 3 === 0) sfx.blip(); }
+    return;
+  }
+  if (trans) { trans.t++; if (trans.t === trans.dur / 2) trans.cb(); if (trans.t >= trans.dur) trans = null; return; }
+  if (finale) { finale.t++; if (finale.t === 420) showEnding(); return; }
+  if (pl.moving) {
+    pl.prog += 2;
+    if (pl.prog >= 16) { pl.moving = false; pl.prog = 0; pl.tx += pl.dx; pl.ty += pl.dy; onArrive(); }
+  }
+  if (!pl.moving && !dlg && !trans) {
+    const d = held[held.length - 1];
+    if (!d) waitRelease = false;
+    else if (!waitRelease) tryMove(d);
+  }
+}
+
+function render() {
+  const m = MAPS[cur];
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) drawTile(m.rows[y][x], x * TS, y * TS, x, y);
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (m.rows[y][x] === 'Q' && tileAt(x - 1, y) !== 'Q') drawLamp(x * TS, y * TS);
+
+  // сущности и игрок, по глубине
+  const list = ents().map(e => ({ y: e.y * 16, e }));
+  const px = pl.tx * 16 + pl.dx * (pl.moving ? pl.prog : 0), py = pl.ty * 16 + pl.dy * (pl.moving ? pl.prog : 0);
+  list.push({ y: py, player: true });
+  list.sort((a, b) => a.y - b.y);
+  for (const it of list) {
+    if (it.player) {
+      const fr = pl.moving && pl.prog < 8 ? (pl.steps % 2) + 1 : 0;
+      drawPerson(px, py, LOOK.player, pl.dir, fr);
+      if (finale && finale.kind === 'friend') drawCloudBuddy(px + 9, py - 9);
+      continue;
+    }
+    const e = it.e, ex = e.x * 16, ey = e.y * 16;
+    if (e.item) {
+      const bob = Math.round(Math.sin(t / 10) * 1.5);
+      R(ex + 4, ey + 13, 8, 2, 'rgba(0,0,0,.25)');
+      ICON[e.item](ex, ey + bob - 2);
+    } else if (e.look) {
+      const look = e.look === 'fisher' && S.hatGiven ? { ...LOOK.fisher, fhat: true } : LOOK[e.look];
+      drawPerson(ex, ey, look, e.dir, 0);
+    } else e.draw(ex, ey);
+  }
+  for (const p of parts) {
+    if (p.heart) heart(Math.round(p.x), Math.round(p.y)); else R(Math.round(p.x), Math.round(p.y), 1, 1, p.c);
+  }
+
+  // атмосфера
+  let fogLevel = S.lit ? 0 : 1;
+  if (finale) fogLevel = Math.max(0, 1 - finale.t / 200);
+  if (m.out && fogLevel > 0) {
+    ctx.globalAlpha = .38 * fogLevel; R(0, 0, W, H, '#1d1a3a'); ctx.globalAlpha = 1;
+    for (const f of fog) {
+      const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r);
+      g.addColorStop(0, 'rgba(220,225,240,' + (.35 * fogLevel) + ')'); g.addColorStop(1, 'rgba(220,225,240,0)');
+      ctx.fillStyle = g; ctx.fillRect(f.x - f.r, f.y - f.r, f.r * 2, f.r * 2);
+    }
+  }
+  if (cur === '3,1' && S.lit) {
+    const a = t * .025, cx = 80, cy = 26;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (const off of [0, Math.PI]) {
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 190);
+      g.addColorStop(0, 'rgba(254,231,97,.55)'); g.addColorStop(1, 'rgba(254,231,97,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a + off - .18) * 220, cy + Math.sin(a + off - .18) * 220);
+      ctx.lineTo(cx + Math.cos(a + off + .18) * 220, cy + Math.sin(a + off + .18) * 220);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+  }
+  if (m.dark) {
+    dctx.globalCompositeOperation = 'source-over';
+    dctx.fillStyle = 'rgba(8,6,16,.97)'; dctx.fillRect(0, 0, W, H);
+    dctx.globalCompositeOperation = 'destination-out';
+    const hole = (x, y, r) => {
+      const g = dctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(.6, 'rgba(0,0,0,.85)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      dctx.fillStyle = g; dctx.fillRect(x - r, y - r, r * 2, r * 2);
+    };
+    hole(px + 8, py + 8, 38 + Math.sin(t * .2) * 1.5 + (Math.random() < .05 ? -2 : 0));
+    ents().forEach(e => { if (e.light) hole(e.x * 16 + 8, e.y * 16 + 8, e.light + Math.sin(t / 12) * 2); });
+    ctx.drawImage(dk, 0, 0);
+  }
+  if (trans) {
+    const h = trans.dur / 2;
+    ctx.globalAlpha = 1 - Math.abs(trans.t - h) / h; R(0, 0, W, H, '#000'); ctx.globalAlpha = 1;
+  }
+  renderDlg();
+}
+
+let last = 0, acc = 0;
+function loop(now) {
+  acc += Math.min(100, now - (last || now)); last = now;
+  while (acc >= 1000 / 60) { update(); acc -= 1000 / 60; }
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ---------------------------------------------------------------- ввод
+function startGame() {
+  state = 'play'; S.start = Date.now();
+  $('title').classList.add('hidden');
+  showArea(MAPS[cur].name);
+  say([
+    'Тихая Долина — маленькая деревня у самого моря.',
+    'Сколько все себя помнят, над бухтой горел старый маяк.',
+    'Но этой ночью он погас...',
+    '...и с моря пополз туман.'], () => { ENTS['1,2'][0].dir = 'left'; talkGrandma(); });
+}
+function pressA() {
+  initAudio();
+  if (ac && ac.state === 'suspended') ac.resume();
+  if (state === 'title') return startGame();
+  if (state !== 'play' || trans || finale) return;
+  if (dlg) return advance();
+  if (!pl.moving) interact();
+}
+function onDirPress(d) {
+  if (!dlg) return;
+  const ln = dlg.lines[dlg.i];
+  if (ln.choice && dlg.chars >= ln.t.length && (d === 'up' || d === 'down')) {
+    const n = ln.choice.opts.length;
+    dlg.sel = (dlg.sel + (d === 'down' ? 1 : n - 1)) % n; sfx.sel();
+  }
+}
+function holdDir(d) { if (!held.includes(d)) { held.push(d); onDirPress(d); } }
+function releaseDir(d) { const i = held.indexOf(d); if (i >= 0) held.splice(i, 1); }
+const KEYMAP = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
+addEventListener('keydown', e => {
+  if (KEYMAP[e.code]) { e.preventDefault(); holdDir(KEYMAP[e.code]); }
+  else if (['Space', 'Enter', 'KeyZ', 'KeyE', 'KeyX'].includes(e.code)) { e.preventDefault(); if (!e.repeat) pressA(); }
+  else if (e.code === 'KeyM') muted = !muted;
+});
+addEventListener('keyup', e => { if (KEYMAP[e.code]) releaseDir(KEYMAP[e.code]); });
+addEventListener('blur', () => { held.length = 0; });
+document.querySelectorAll('#dpad button').forEach(b => {
+  const d = b.dataset.d;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); initAudio(); b.classList.add('on'); holdDir(d); });
+  const up = () => { b.classList.remove('on'); releaseDir(d); };
+  b.addEventListener('pointerup', up); b.addEventListener('pointerleave', up); b.addEventListener('pointercancel', up);
+});
+$('abtn').addEventListener('pointerdown', e => { e.preventDefault(); pressA(); });
+$('title').addEventListener('click', () => { if (state === 'title') pressA(); });
+$('dlg').addEventListener('click', () => { if (dlg) pressA(); });
+
+if (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window) document.body.classList.add('touch');
+
+function fit() {
+  const touch = document.body.classList.contains('touch');
+  const availW = innerWidth - 32, availH = innerHeight - (touch ? 250 : 110);
+  let sc = Math.min(availW / W, availH / H);
+  sc = sc >= 2 ? Math.floor(sc) : Math.max(1, sc);
+  $('wrap').style.width = W * sc + 'px'; $('wrap').style.height = H * sc + 'px';
+  document.documentElement.style.setProperty('--u', sc + 'px');
+}
+addEventListener('resize', fit);
+fit(); updateHUD();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
